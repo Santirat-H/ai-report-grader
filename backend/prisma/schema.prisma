@@ -1,0 +1,41 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Get a free hosted Postgres database in seconds: `npx create-db`
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum ReportStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+}
+
+model File {
+  id              String         @id @default(uuid())
+  name            String
+  size            Int            @default(0)
+  url             String
+  createdAt       DateTime       @default(now())
+  status          ReportStatus   @default(PENDING)
+  totalScore      Float?         @default(0)
+  overallFeedback String?        @db.Text
+  sectionScores   SectionScore[] // ความสัมพันธ์ 1-to-Many
+}
+
+model SectionScore {
+  sectionName String
+  score       Float
+  comment     String @db.Text
+  reportId    String
+  report      File   @relation(fields: [reportId], references: [id])
+
+  @@id([reportId, sectionName])
+}
