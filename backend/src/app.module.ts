@@ -7,6 +7,7 @@ import { AppService } from './app.service';
 
 import { PrismaModule } from './prisma/prisma.module';
 import { FileModule } from './file/file.module';
+import { ProjectModule } from './project/project.module';
 
 @Module({
   imports: [
@@ -17,6 +18,7 @@ import { FileModule } from './file/file.module';
     }),
     PrismaModule,
     FileModule,
+    ProjectModule,
   ],
   controllers: [AppController],
   providers: [AppService],

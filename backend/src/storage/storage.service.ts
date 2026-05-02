@@ -78,13 +78,31 @@ export class StorageService {
   // This is significantly faster than going through a raw TCP connection to Postgres
   // (PrismaPg), because the Supabase JS client uses persistent HTTP keep-alive
   // connections routed through Supabase's optimised edge layer.
-  async getFilesFromDB() {
-    const { data, error } = await this.supabase
+  async getFilesFromDB(projectId?: string) {
+    let query = this.supabase
       .from('File')
-      .select('id, name, size, url, createdAt, status')
+      .select('id, name, size, url, createdAt, status, totalScore, projectId, SectionScore(sectionName, score)')
       .order('createdAt', { ascending: false });
 
+    if (projectId) {
+      query = query.eq('projectId', projectId);
+    }
+
+    const { data, error } = await query;
     if (error) throw error;
-    return data ?? [];
+
+    return (data ?? []).map((file: any) => {
+      const scores = { content: 0, synthesis: 0, references: 0, format: 0 };
+      if (file.SectionScore && Array.isArray(file.SectionScore)) {
+        for (const s of file.SectionScore) {
+          const key = (s.sectionName || '').toLowerCase();
+          if (['content', 'synthesis', 'references', 'format'].includes(key)) {
+            scores[key as keyof typeof scores] = s.score;
+          }
+        }
+      }
+      const { SectionScore, ...rest } = file;
+      return { ...rest, scores };
+    });
   }
 }

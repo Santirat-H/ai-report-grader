@@ -1,0 +1,36 @@
+[
+  {
+    "name": "First Project",
+    "assignmentDetails": "",
+    "sections": [
+      {
+        "id": "17768714149871",
+        "name": "column 1",
+        "maxScore": 10,
+        "rubric": "Description for column 1..."
+      },
+      {
+        "id": "1776871452878",
+        "name": "column 2",
+        "maxScore": 10,
+        "rubric": "Not sure guy"
+      }
+    ],
+    "createdAt": "2026-04-22T15:24:22.062Z",
+    "id": "1776871468111"
+  },
+  {
+    "name": "New Grading Project",
+    "assignmentDetails": "Please describe the overall assignment here...",
+    "sections": [
+      {
+        "id": "17768714657651",
+        "name": "column 1",
+        "maxScore": 10,
+        "rubric": "Description for column 1..."
+      }
+    ],
+    "createdAt": "2026-04-22T15:24:28.191Z",
+    "id": "1776871473725"
+  }
+]

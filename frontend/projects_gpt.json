@@ -1,0 +1,56 @@
+[
+  {
+    "id": "1776916692898",
+    "name": "Untitled GPT Project",
+    "assignmentDetails": "",
+    "createdAt": "",
+    "updatedAt": "2026-04-23T03:58:19.643Z",
+    "sections": [
+      {
+        "id": "1776916608902-q2mmo1",
+        "name": "column 1",
+        "maxScore": 5,
+        "rubric": ""
+      },
+      {
+        "id": "1776916608902-tauule",
+        "name": "column 2",
+        "maxScore": 4,
+        "rubric": ""
+      }
+    ]
+  },
+  {
+    "id": "1776916869635",
+    "name": "Untitled GPT Project",
+    "assignmentDetails": "",
+    "createdAt": "",
+    "updatedAt": "2026-04-23T04:01:09.635Z",
+    "sections": [
+      {
+        "id": "1776916859605-bpgnwg",
+        "name": "column 1",
+        "maxScore": 4,
+        "rubric": ""
+      },
+      {
+        "id": "1776916859605-vdcsc5",
+        "name": "column 2",
+        "maxScore": 4,
+        "rubric": ""
+      },
+      {
+        "id": "1776916859605-nci6md",
+        "name": "column 3",
+        "maxScore": 4,
+        "rubric": ""
+      },
+      {
+        "id": "1776916859605-m9rg4m",
+        "name": "column 4",
+        "maxScore": 4,
+        "rubric": ""
+      }
+    ]
+  }
+]

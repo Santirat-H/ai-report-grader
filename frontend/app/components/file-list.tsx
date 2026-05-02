@@ -6,12 +6,13 @@ import { FileCard } from './file-list/FileCard';
 import { UploadModal } from './file-list/UploadModal';
 import { DeleteModal } from './file-list/DeleteModal';
 
-export default function FileList() {
+export default function FileList({ projectId }: { projectId?: string } = {}) {
   const {
     files,
     isLoading,
     isUploading,
     isDeleting,
+    analyzingFileId,
     fileToDelete,
     isUploadModalOpen,
     fileInputRef,
@@ -19,9 +20,11 @@ export default function FileList() {
     setIsUploadModalOpen,
     handleUploadFile,
     handleDeleteFile,
-  } = useFileList();
+    analyzeFile,
+  } = useFileList(projectId);
 
   const [isDragActive, setIsDragActive] = useState(false);
+  const [scoreMode, setScoreMode] = useState<'total' | 'average'>('total');
 
   const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
@@ -59,10 +62,34 @@ export default function FileList() {
           <h2 className="text-2xl font-bold text-slate-800">PDF Evaluation List</h2>
           <p className="text-slate-500 mt-1 text-sm">View and manage your AI-evaluated documents</p>
         </div>
-        <div>
+        <div className="flex items-center gap-3">
+          {/* Score mode toggle */}
+          <div className="flex items-center gap-0.5 bg-slate-100 rounded-lg p-1">
+            <button
+              onClick={() => setScoreMode('total')}
+              className={`px-3 py-1 rounded-md text-xs font-semibold transition-all ${
+                scoreMode === 'total'
+                  ? 'bg-white text-slate-800 shadow-sm'
+                  : 'text-slate-500 hover:text-slate-700'
+              }`}
+            >
+              Total
+            </button>
+            <button
+              onClick={() => setScoreMode('average')}
+              className={`px-3 py-1 rounded-md text-xs font-semibold transition-all ${
+                scoreMode === 'average'
+                  ? 'bg-white text-slate-800 shadow-sm'
+                  : 'text-slate-500 hover:text-slate-700'
+              }`}
+            >
+              Average
+            </button>
+          </div>
+
           <button
             onClick={() => setIsUploadModalOpen(true)}
-            className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2.5 px-5 rounded-xl shadow-sm transition-colors flex items-center gap-2 text-sm"
+            className="bg-[#1A2F5E] hover:bg-[#243d76] text-white font-bold py-2.5 px-5 rounded-xl shadow-sm transition-all flex items-center gap-2 text-sm ease-in-out duration-200"
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
@@ -98,6 +125,9 @@ export default function FileList() {
               key={file.id}
               file={file}
               onDelete={setFileToDelete}
+              onAnalyze={projectId ? analyzeFile : undefined}
+              isAnalyzing={analyzingFileId === file.id}
+              scoreMode={scoreMode}
             />
           ))
         )}

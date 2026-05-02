@@ -2,15 +2,16 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   LayoutDashboard,
-  FileUp,
-  ClipboardList,
   CheckSquare,
   Pin,
   PinOff,
   Sparkles,
+  FolderOpen,
+  Layers,
+  ChevronRight,
 } from 'lucide-react';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -21,15 +22,21 @@ interface NavItem {
   icon: React.ElementType;
 }
 
+interface ProjectStub {
+  id: string;
+  name: string;
+}
+
 type SidebarMode = 'hover' | 'fixed';
+
+const API_BASE = 'http://localhost:4000';
 
 // ─── Navigation Config ────────────────────────────────────────────────────────
 
 const NAV_ITEMS: NavItem[] = [
-  { label: 'Dashboard',        href: '/dashboard',    icon: LayoutDashboard },
-  { label: 'Upload & Evaluate', href: '/evaluate',    icon: FileUp          },
-  { label: 'Evaluation List',  href: '/list',         icon: ClipboardList   },
-  { label: 'Human Review',     href: '/humanreview',  icon: CheckSquare     },
+  { label: 'Create New Project', href: '/create',      icon: FolderOpen },
+  { label: 'Dashboard [Testing]',          href: '/dashboard',   icon: LayoutDashboard },
+  { label: 'Human Review [Testing]',       href: '/humanreview', icon: CheckSquare },
 ];
 
 // ─── Main Component ───────────────────────────────────────────────────────────
@@ -38,9 +45,18 @@ export default function Sidebar() {
   const pathname = usePathname();
   const [mode, setMode] = useState<SidebarMode>('hover');
   const [isHovered, setIsHovered] = useState(false);
+  const [projects, setProjects] = useState<ProjectStub[]>([]);
 
-  // Sidebar is "open" when fixed OR when hovered in hover-mode
   const isOpen = mode === 'fixed' || isHovered;
+
+  useEffect(() => {
+    fetch(`${API_BASE}/projects`)
+      .then((r) => (r.ok ? r.json() : []))
+      .then((data: any[]) =>
+        setProjects(data.slice(0, 6).map((p) => ({ id: p.id, name: p.name })))
+      )
+      .catch(() => {});
+  }, [pathname]); // re-fetch when navigating so list stays fresh
 
   const toggleMode = () => setMode((m) => (m === 'hover' ? 'fixed' : 'hover'));
 
@@ -49,26 +65,19 @@ export default function Sidebar() {
       onMouseEnter={() => mode === 'hover' && setIsHovered(true)}
       onMouseLeave={() => mode === 'hover' && setIsHovered(false)}
       className={[
-        // Base layout
         'relative flex flex-col h-screen shrink-0',
         'transition-[width] duration-300 ease-in-out overflow-hidden',
-        // Width toggle
         isOpen ? 'w-56' : 'w-[68px]',
-        // Colors — Navy bg, cream text
         'bg-[#1A2F5E] text-[#F5F5F0]',
-        // Soft right border
         'border-r border-[#243d76]',
       ].join(' ')}
       style={{ borderRadius: '0 1.5rem 1.5rem 0' }}
     >
       {/* ── Logo / Brand ──────────────────────────────────────────────── */}
       <div className="flex items-center gap-3 px-4 py-6 shrink-0">
-        {/* Logo circle */}
         <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl bg-[#F5F5F0] shadow-md">
           <Sparkles className="h-5 w-5 text-[#1A2F5E]" />
         </div>
-
-        {/* Brand name — slides in */}
         <span
           className={[
             'font-bold text-lg tracking-tight whitespace-nowrap',
@@ -81,8 +90,8 @@ export default function Sidebar() {
       </div>
 
       {/* ── Navigation ────────────────────────────────────────────────── */}
-      <nav className="flex-1 flex flex-col gap-1 px-3 pt-2">
-        {/* Section label */}
+      <nav className="flex-1 flex flex-col gap-1 px-3 pt-2 overflow-y-auto overflow-x-hidden">
+        {/* Main menu label */}
         <p
           className={[
             'text-[10px] font-semibold uppercase tracking-widest text-[#F5F5F0]/40 pl-2 pb-1',
@@ -107,10 +116,7 @@ export default function Sidebar() {
                   : 'text-[#F5F5F0]/70 hover:bg-white/10 hover:text-[#F5F5F0]',
               ].join(' ')}
             >
-              {/* Icon */}
               <Icon className="h-5 w-5 shrink-0" strokeWidth={active ? 2.5 : 1.8} />
-
-              {/* Label */}
               <span
                 className={[
                   'text-sm whitespace-nowrap',
@@ -121,7 +127,6 @@ export default function Sidebar() {
                 {label}
               </span>
 
-              {/* Tooltip when collapsed */}
               {!isOpen && (
                 <span className="absolute left-full ml-3 hidden group-hover:flex items-center whitespace-nowrap rounded-lg bg-[#1A2F5E] border border-[#243d76] px-2.5 py-1.5 text-xs font-medium text-[#F5F5F0] shadow-lg z-50">
                   {label}
@@ -130,23 +135,74 @@ export default function Sidebar() {
             </Link>
           );
         })}
+
+        {/* Projects section */}
+        {projects.length > 0 && (
+          <>
+            <div
+              className={[
+                'mt-4 mb-1 pl-2 flex items-center gap-1.5',
+                'transition-[opacity] duration-200',
+                isOpen ? 'opacity-100' : 'opacity-0',
+              ].join(' ')}
+            >
+              <Layers className="h-3 w-3 text-[#F5F5F0]/40" />
+              <p className="text-[10px] font-semibold uppercase tracking-widest text-[#F5F5F0]/40">
+                Projects
+              </p>
+            </div>
+
+            {projects.map((p) => {
+              const href = `/project/${p.id}`;
+              const active = pathname === href;
+              return (
+                <Link
+                  key={p.id}
+                  href={href}
+                  className={[
+                    'flex items-center gap-2.5 rounded-xl px-3 py-2',
+                    'transition-all duration-200 group relative',
+                    active
+                      ? 'bg-[#F5F5F0] text-[#1A2F5E] font-semibold shadow-sm'
+                      : 'text-[#F5F5F0]/60 hover:bg-white/10 hover:text-[#F5F5F0]',
+                  ].join(' ')}
+                >
+                  <ChevronRight className="h-3.5 w-3.5 shrink-0 opacity-60" strokeWidth={2} />
+                  <span
+                    className={[
+                      'text-xs whitespace-nowrap overflow-hidden text-ellipsis max-w-[120px]',
+                      'transition-[opacity,transform] duration-300',
+                      isOpen ? 'opacity-100 translate-x-0' : 'opacity-0 -translate-x-2 pointer-events-none',
+                    ].join(' ')}
+                  >
+                    {p.name}
+                  </span>
+
+                  {!isOpen && (
+                    <span className="absolute left-full ml-3 hidden group-hover:flex items-center whitespace-nowrap rounded-lg bg-[#1A2F5E] border border-[#243d76] px-2.5 py-1.5 text-xs font-medium text-[#F5F5F0] shadow-lg z-50">
+                      {p.name}
+                    </span>
+                  )}
+                </Link>
+              );
+            })}
+          </>
+        )}
       </nav>
 
       {/* ── Mode Toggle ───────────────────────────────────────────────── */}
-      <div 
+      <div
         className={[
           'px-3 py-4 shrink-0 transition-opacity duration-300',
-          isOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'
+          isOpen ? 'opacity-100' : 'opacity-0 pointer-events-none',
         ].join(' ')}
       >
         <div
           className={[
             'flex items-center overflow-hidden rounded-xl',
             'bg-white/5 border border-white/10',
-            'gap-0',
           ].join(' ')}
         >
-          {/* Hover Mode Button */}
           <button
             onClick={() => setMode('hover')}
             title="Hover Mode"
@@ -169,7 +225,6 @@ export default function Sidebar() {
             </span>
           </button>
 
-          {/* Fixed Mode Button */}
           <button
             onClick={() => setMode('fixed')}
             title="Fixed Mode"
@@ -194,7 +249,7 @@ export default function Sidebar() {
         </div>
       </div>
 
-      {/* ── Footer / Engine badge ─────────────────────────────────────── */}
+      {/* ── Footer ────────────────────────────────────────────────────── */}
       <div
         className={[
           'px-4 pb-5 text-[10px] font-medium text-[#F5F5F0]/30 text-center',

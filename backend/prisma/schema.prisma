@@ -16,6 +16,27 @@ enum ReportStatus {
   PROCESSING
   COMPLETED
   FAILED
+  REVIEWED
+}
+
+model Project {
+  id                String           @id @default(uuid())
+  name              String
+  assignmentDetails String?          @db.Text
+  createdAt         DateTime         @default(now())
+  updatedAt         DateTime         @updatedAt
+  sections          ProjectSection[]
+  files             File[]
+}
+
+model ProjectSection {
+  id        String  @id @default(uuid())
+  name      String
+  maxScore  Int     @default(4)
+  rubric    String  @db.Text
+  order     Int     @default(0)
+  projectId String
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
 }
 
 model File {
@@ -27,7 +48,10 @@ model File {
   status          ReportStatus   @default(PENDING)
   totalScore      Float?         @default(0)
   overallFeedback String?        @db.Text
-  sectionScores   SectionScore[] // ความสัมพันธ์ 1-to-Many
+  projectId       String?
+  project         Project?       @relation(fields: [projectId], references: [id])
+  sectionScores   SectionScore[]
+  humanReview     HumanReview?
 }
 
 model SectionScore {
@@ -38,4 +62,26 @@ model SectionScore {
   report      File   @relation(fields: [reportId], references: [id])
 
   @@id([reportId, sectionName])
+}
+
+model HumanReview {
+  id              String              @id @default(uuid())
+  fileId          String              @unique
+  file            File                @relation(fields: [fileId], references: [id], onDelete: Cascade)
+  totalScore      Float               @default(0)
+  overallFeedback String?             @db.Text
+  createdAt       DateTime            @default(now())
+  updatedAt       DateTime            @updatedAt
+  sections        HumanSectionScore[]
+}
+
+model HumanSectionScore {
+  id          String      @id @default(uuid())
+  reviewId    String
+  review      HumanReview @relation(fields: [reviewId], references: [id], onDelete: Cascade)
+  sectionName String
+  score       Float
+  feedback    String      @db.Text
+
+  @@unique([reviewId, sectionName])
 }

@@ -4,11 +4,14 @@ import {
   Get,
   Delete,
   Param,
+  Query,
+  Body,
   UploadedFile,
   UseInterceptors,
   ParseFilePipe,
   FileTypeValidator,
   MaxFileSizeValidator,
+  BadRequestException,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { FileService } from './file.service';
@@ -29,17 +32,45 @@ export class FileController {
       }),
     )
     file: Express.Multer.File,
+    @Body('projectId') projectId?: string,
   ) {
-    return this.fileService.uploadPdf(file);
+    return this.fileService.uploadPdf(file, projectId);
   }
 
   @Get('files')
-  async getAllFiles() {
-    return this.fileService.getAllFiles();
+  async getAllFiles(@Query('projectId') projectId?: string) {
+    return this.fileService.getAllFiles(projectId);
+  }
+
+  @Get('files/:id')
+  async getFileById(@Param('id') id: string) {
+    return this.fileService.getFileById(id);
   }
 
   @Delete('files/:id')
   async deleteFile(@Param('id') id: string) {
     return this.fileService.deleteFile(id);
+  }
+
+  @Post('review/:id')
+  async saveReview(
+    @Param('id') id: string,
+    @Body()
+    body: {
+      sections: { sectionName: string; score: number; feedback: string }[];
+      overallFeedback?: string;
+      confirm?: boolean;
+    },
+  ) {
+    return this.fileService.saveReview(id, body);
+  }
+
+  @Post('analyze/:id')
+  async analyzeFile(
+    @Param('id') id: string,
+    @Body('projectId') projectId: string,
+  ) {
+    if (!projectId) throw new BadRequestException('projectId is required');
+    return this.fileService.analyzeFile(id, projectId);
   }
 }

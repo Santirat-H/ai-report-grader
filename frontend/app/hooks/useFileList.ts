@@ -3,11 +3,12 @@ import { PDFFile } from '../types/file';
 
 const API_BASE = 'http://localhost:4000';
 
-export function useFileList() {
+export function useFileList(projectId?: string) {
   const [files, setFiles] = useState<PDFFile[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isUploading, setIsUploading] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [analyzingFileId, setAnalyzingFileId] = useState<string | null>(null);
   const [fileToDelete, setFileToDelete] = useState<PDFFile | null>(null);
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -15,7 +16,10 @@ export function useFileList() {
   const fetchFiles = async () => {
     setIsLoading(true);
     try {
-      const res = await fetch(`${API_BASE}/file/files`);
+      const url = projectId
+        ? `${API_BASE}/file/files?projectId=${projectId}`
+        : `${API_BASE}/file/files`;
+      const res = await fetch(url);
       if (res.ok) {
         const data = await res.json();
         const mappedFiles: PDFFile[] = data.map((d: any) => ({
@@ -23,14 +27,13 @@ export function useFileList() {
           name: d.name,
           size: d.size || 0,
           uploadDate: new Date(d.createdAt).toISOString(),
-          status: 'PENDING',
-          // Static mock scores since the backend doesn't calculate real scores yet
-          scores: {
-            content: Math.floor(Math.random() * (95 - 60) + 60),
-            synthesis: Math.floor(Math.random() * (95 - 60) + 60),
-            references: Math.floor(Math.random() * (95 - 60) + 60),
-            format: Math.floor(Math.random() * (95 - 60) + 60),
-          },
+          status: d.status || 'PENDING',
+          totalScore: d.totalScore || 0,
+          sectionScores: (d.sectionScores ?? []).map((s: any) => ({
+            name: s.name,
+            score: s.score,
+            maxScore: s.maxScore,
+          })),
         }));
         setFiles(mappedFiles);
       }
@@ -43,12 +46,14 @@ export function useFileList() {
 
   useEffect(() => {
     fetchFiles();
-  }, []);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [projectId]);
 
   const handleUploadFile = async (file: File) => {
     setIsUploading(true);
     const formData = new FormData();
     formData.append('file', file);
+    if (projectId) formData.append('projectId', projectId);
 
     try {
       const res = await fetch(`${API_BASE}/file/pdf`, {
@@ -78,7 +83,7 @@ export function useFileList() {
 
     setIsDeleting(true);
     try {
-      const res = await fetch(`${API_BASE}/file/files/${fileToDelete.name}`, {
+      const res = await fetch(`${API_BASE}/file/files/${fileToDelete.id}`, {
         method: 'DELETE',
       });
 
@@ -96,11 +101,34 @@ export function useFileList() {
     }
   };
 
+  const analyzeFile = async (fileId: string) => {
+    if (!projectId || analyzingFileId) return;
+    setAnalyzingFileId(fileId);
+    try {
+      const res = await fetch(`${API_BASE}/file/analyze/${fileId}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ projectId }),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({ message: 'Analysis failed' }));
+        alert(`Analysis failed: ${err.message || res.status}`);
+      }
+      await fetchFiles();
+    } catch (err) {
+      console.error('Analysis error:', err);
+      alert('Error during analysis. Is the backend running?');
+    } finally {
+      setAnalyzingFileId(null);
+    }
+  };
+
   return {
     files,
     isLoading,
     isUploading,
     isDeleting,
+    analyzingFileId,
     fileToDelete,
     isUploadModalOpen,
     fileInputRef,
@@ -108,5 +136,7 @@ export function useFileList() {
     setIsUploadModalOpen,
     handleUploadFile,
     handleDeleteFile,
+    analyzeFile,
+    fetchFiles,
   };
 }
