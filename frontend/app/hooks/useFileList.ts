@@ -1,11 +1,12 @@
 import { useState, useEffect, useRef } from 'react';
 import { PDFFile } from '../types/file';
 
-const API_BASE = 'http://localhost:4000';
+const API_BASE = '/api/backend';
 
 export function useFileList(projectId?: string) {
   const [files, setFiles] = useState<PDFFile[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [fetchError, setFetchError] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [analyzingFileId, setAnalyzingFileId] = useState<string | null>(null);
@@ -15,6 +16,7 @@ export function useFileList(projectId?: string) {
 
   const fetchFiles = async () => {
     setIsLoading(true);
+    setFetchError(false);
     try {
       const url = projectId
         ? `${API_BASE}/file/files?projectId=${projectId}`
@@ -36,9 +38,12 @@ export function useFileList(projectId?: string) {
           })),
         }));
         setFiles(mappedFiles);
+      } else {
+        setFetchError(true);
       }
     } catch (err) {
       console.error('Error fetching files:', err);
+      setFetchError(true);
     } finally {
       setIsLoading(false);
     }
@@ -126,6 +131,7 @@ export function useFileList(projectId?: string) {
   return {
     files,
     isLoading,
+    fetchError,
     isUploading,
     isDeleting,
     analyzingFileId,

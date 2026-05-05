@@ -130,18 +130,29 @@ export default function ProjectDashboardPage() {
   const [project, setProject] = useState<Project | null>(null);
   const [fileStats, setFileStats] = useState({ total: 0, pending: 0, completed: 0, avgScore: 0 });
   const [isLoading, setIsLoading] = useState(true);
+  const [scoreMode, setScoreMode] = useState<'total' | 'average'>(() => {
+    if (typeof window === 'undefined') return 'total';
+    return (localStorage.getItem(`scoreMode_${id}`) as 'total' | 'average') ?? 'total';
+  });
+
+  const handleScoreModeChange = (mode: 'total' | 'average') => {
+    setScoreMode(mode);
+    localStorage.setItem(`scoreMode_${id}`, mode);
+  };
 
   useEffect(() => {
     async function load() {
       setIsLoading(true);
       try {
         const [projectRes, filesRes] = await Promise.all([
-          fetch(`http://localhost:4000/projects/${id}`),
-          fetch(`http://localhost:4000/file/files?projectId=${id}`),
+          fetch(`/api/backend/projects/${id}`),
+          fetch(`/api/backend/file/files?projectId=${id}`),
         ]);
 
+        let projectData: Project | null = null;
         if (projectRes.ok) {
-          setProject(await projectRes.json());
+          projectData = await projectRes.json();
+          setProject(projectData);
         } else {
           router.push('/create');
           return;
@@ -189,6 +200,9 @@ export default function ProjectDashboardPage() {
   if (!project) return null;
 
   const totalMax = project.sections.reduce((sum, s) => sum + s.maxScore, 0);
+  const numSections = project.sections.length || 1;
+  const maxPerSection = totalMax / numSections;
+  const avgScorePerSection = fileStats.avgScore > 0 ? fileStats.avgScore / numSections : 0;
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -260,9 +274,17 @@ export default function ProjectDashboardPage() {
             color="bg-amber-50 text-amber-600"
           />
           <StatCard
-            label="Avg Score"
-            value={fileStats.avgScore > 0 ? fileStats.avgScore.toFixed(2) : '—'}
-            sub={fileStats.avgScore > 0 ? `out of ${totalMax} pts` : 'no scores yet'}
+            label={scoreMode === 'average' ? 'Average Score' : 'Total Score'}
+            value={
+              scoreMode === 'average'
+                ? (avgScorePerSection > 0 ? avgScorePerSection.toFixed(2) : '—')
+                : (fileStats.avgScore > 0 ? fileStats.avgScore.toFixed(2) : '—')
+            }
+            sub={
+              scoreMode === 'average'
+                ? (avgScorePerSection > 0 ? `out of ${maxPerSection.toFixed(2)} pts` : 'no scores yet')
+                : (fileStats.avgScore > 0 ? `out of ${totalMax} pts` : 'no scores yet')
+            }
             icon={TrendingUp}
             color="bg-purple-50 text-purple-600"
           />
@@ -274,7 +296,7 @@ export default function ProjectDashboardPage() {
         {/* File list scoped to this project */}
         <div>
           <h2 className="text-lg font-bold text-gray-900 mb-4">Submitted Files</h2>
-          <FileList projectId={id} />
+          <FileList projectId={id} scoreMode={scoreMode} onScoreModeChange={handleScoreModeChange} />
         </div>
       </div>
     </div>

@@ -7,7 +7,7 @@ import { defaultLayoutPlugin } from '@react-pdf-viewer/default-layout';
 import '@react-pdf-viewer/core/lib/styles/index.css';
 import '@react-pdf-viewer/default-layout/lib/styles/index.css';
 
-const API_BASE = 'http://localhost:4000';
+const API_BASE = '/api/backend';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 

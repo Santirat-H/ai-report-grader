@@ -41,7 +41,7 @@ interface Project {
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-const API_BASE = 'http://localhost:4000';
+const API_BASE = '/api/backend';
 
 const uid = () => `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 
@@ -456,18 +456,23 @@ export default function CreateBatchClaudePage() {
   const [projects, setProjects] = useState<Project[]>([]);
   const [editing, setEditing] = useState<Project | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [fetchError, setFetchError] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
 
   async function loadProjects() {
     setIsLoading(true);
+    setFetchError(false);
     try {
       const res = await fetch(`${API_BASE}/projects`);
       if (res.ok) {
         const data: any[] = await res.json();
         setProjects(data.map(normalizeProject));
+      } else {
+        setFetchError(true);
       }
     } catch (err) {
       console.error('Failed to load projects:', err);
+      setFetchError(true);
     } finally {
       setIsLoading(false);
     }
@@ -614,6 +619,24 @@ export default function CreateBatchClaudePage() {
               <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
             </svg>
             <p className="text-sm text-gray-400">Loading projects…</p>
+          </div>
+        ) : fetchError ? (
+          <div className="flex flex-col items-center justify-center py-32 text-center">
+            <div className="w-16 h-16 rounded-2xl bg-red-50 flex items-center justify-center mb-5">
+              <svg className="h-8 w-8 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
+              </svg>
+            </div>
+            <h2 className="text-lg font-semibold text-gray-700 mb-2">Failed to load projects</h2>
+            <p className="text-sm text-gray-400 max-w-xs leading-relaxed mb-6">
+              Could not connect to the server. Make sure the backend is running.
+            </p>
+            <button
+              onClick={loadProjects}
+              className="flex items-center gap-2 px-6 py-3 text-sm font-semibold text-white bg-[#1A2F5E] hover:bg-[#243d76] rounded-xl shadow-sm transition-all active:scale-95"
+            >
+              Retry
+            </button>
           </div>
         ) : projects.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-32 text-center">

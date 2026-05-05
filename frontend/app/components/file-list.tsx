@@ -6,10 +6,19 @@ import { FileCard } from './file-list/FileCard';
 import { UploadModal } from './file-list/UploadModal';
 import { DeleteModal } from './file-list/DeleteModal';
 
-export default function FileList({ projectId }: { projectId?: string } = {}) {
+export default function FileList({
+  projectId,
+  scoreMode,
+  onScoreModeChange,
+}: {
+  projectId?: string;
+  scoreMode: 'total' | 'average';
+  onScoreModeChange: (mode: 'total' | 'average') => void;
+}) {
   const {
     files,
     isLoading,
+    fetchError,
     isUploading,
     isDeleting,
     analyzingFileId,
@@ -21,10 +30,10 @@ export default function FileList({ projectId }: { projectId?: string } = {}) {
     handleUploadFile,
     handleDeleteFile,
     analyzeFile,
+    fetchFiles,
   } = useFileList(projectId);
 
   const [isDragActive, setIsDragActive] = useState(false);
-  const [scoreMode, setScoreMode] = useState<'total' | 'average'>('total');
 
   const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
@@ -66,7 +75,7 @@ export default function FileList({ projectId }: { projectId?: string } = {}) {
           {/* Score mode toggle */}
           <div className="flex items-center gap-0.5 bg-slate-100 rounded-lg p-1">
             <button
-              onClick={() => setScoreMode('total')}
+              onClick={() => onScoreModeChange('total')}
               className={`px-3 py-1 rounded-md text-xs font-semibold transition-all ${
                 scoreMode === 'total'
                   ? 'bg-white text-slate-800 shadow-sm'
@@ -76,7 +85,7 @@ export default function FileList({ projectId }: { projectId?: string } = {}) {
               Total
             </button>
             <button
-              onClick={() => setScoreMode('average')}
+              onClick={() => onScoreModeChange('average')}
               className={`px-3 py-1 rounded-md text-xs font-semibold transition-all ${
                 scoreMode === 'average'
                   ? 'bg-white text-slate-800 shadow-sm'
@@ -108,6 +117,22 @@ export default function FileList({ projectId }: { projectId?: string } = {}) {
               <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
             </svg>
             <h3 className="text-sm font-medium text-slate-600">Loading documents...</h3>
+          </div>
+        ) : fetchError ? (
+          <div className="flex flex-col items-center justify-center py-16 bg-white border border-red-100 rounded-xl shadow-sm text-center px-4">
+            <div className="p-4 bg-red-50 rounded-full mb-4">
+              <svg className="w-8 h-8 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
+              </svg>
+            </div>
+            <h3 className="text-base font-semibold text-slate-800 mb-1">Failed to load documents</h3>
+            <p className="text-sm text-slate-500 max-w-sm mb-4">Could not connect to the server. Make sure the backend is running.</p>
+            <button
+              onClick={fetchFiles}
+              className="bg-[#1A2F5E] hover:bg-[#243d76] text-white font-semibold py-2 px-5 rounded-lg text-sm transition-all ease-in-out duration-200"
+            >
+              Retry
+            </button>
           </div>
         ) : files.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-16 bg-white border border-slate-200 rounded-xl shadow-sm text-center px-4">
