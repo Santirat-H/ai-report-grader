@@ -25,6 +25,8 @@ ENV NEXT_PUBLIC_BACKEND_URL=$NEXT_PUBLIC_BACKEND_URL
 
 RUN npm run build
 
+RUN find /app/.next/standalone -type f | head -20 || echo 'standalone not found'
+
 # ---- Production stage ----
 FROM node:22-alpine AS runner
 
@@ -37,7 +39,7 @@ RUN addgroup --system --gid 1001 nodejs \
 
 COPY --from=builder /app/public ./public
 
-COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone/frontend ./
+COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone/app ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 
 USER nextjs
