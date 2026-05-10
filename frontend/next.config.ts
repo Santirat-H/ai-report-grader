@@ -2,7 +2,7 @@ import path from "path";
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-    /* config options here */
+    output: "standalone",
     // บอกให้ Turbopack รู้ว่า root ของงานอยู่ที่โฟลเดอร์ ECTI_2026
     turbopack: {
         root: path.resolve(process.cwd(), ".."),
@@ -31,7 +31,7 @@ const nextConfig: NextConfig = {
         return [
             {
                 source: "/api/backend/:path*",
-                destination: "http://localhost:4000/:path*",
+                destination: `${process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:4000'}/:path*`,
             },
         ];
     },

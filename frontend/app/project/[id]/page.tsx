@@ -140,40 +140,42 @@ export default function ProjectDashboardPage() {
     localStorage.setItem(`scoreMode_${id}`, mode);
   };
 
+  const loadStats = async () => {
+    try {
+      const filesRes = await fetch(`/api/backend/file/files?projectId=${id}`);
+      if (filesRes.ok) {
+        const files: any[] = await filesRes.json();
+        const completed = files.filter(
+          (f) => f.status === 'COMPLETED' || f.totalScore > 0,
+        ).length;
+        const pending = files.filter(
+          (f) => f.status === 'PENDING' || f.status === 'PROCESSING',
+        ).length;
+        const scored = files.filter((f) => f.totalScore > 0);
+        const avgScore =
+          scored.length > 0
+            ? scored.reduce((sum: number, f: any) => sum + (f.totalScore || 0), 0) / scored.length
+            : 0;
+        setFileStats({ total: files.length, pending, completed, avgScore });
+      }
+    } catch (err) {
+      console.error('Failed to load stats:', err);
+    }
+  };
+
   useEffect(() => {
     async function load() {
       setIsLoading(true);
       try {
-        const [projectRes, filesRes] = await Promise.all([
-          fetch(`/api/backend/projects/${id}`),
-          fetch(`/api/backend/file/files?projectId=${id}`),
-        ]);
-
-        let projectData: Project | null = null;
+        const projectRes = await fetch(`/api/backend/projects/${id}`);
         if (projectRes.ok) {
-          projectData = await projectRes.json();
+          const projectData: Project = await projectRes.json();
           setProject(projectData);
         } else {
           router.push('/create');
           return;
         }
-
-        if (filesRes.ok) {
-          const files: any[] = await filesRes.json();
-          const completed = files.filter(
-            (f) => f.status === 'COMPLETED' || f.totalScore > 0,
-          ).length;
-          const pending = files.filter(
-            (f) => f.status === 'PENDING' || f.status === 'PROCESSING',
-          ).length;
-          const scored = files.filter((f) => f.totalScore > 0);
-          const avgScore =
-            scored.length > 0
-              ? scored.reduce((sum: number, f: any) => sum + (f.totalScore || 0), 0) / scored.length
-              : 0;
-
-          setFileStats({ total: files.length, pending, completed, avgScore });
-        }
+        await loadStats();
       } catch (err) {
         console.error('Failed to load project:', err);
       } finally {
@@ -181,6 +183,7 @@ export default function ProjectDashboardPage() {
       }
     }
     load();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id, router]);
 
   if (isLoading) {
@@ -296,7 +299,7 @@ export default function ProjectDashboardPage() {
         {/* File list scoped to this project */}
         <div>
           <h2 className="text-lg font-bold text-gray-900 mb-4">Submitted Files</h2>
-          <FileList projectId={id} scoreMode={scoreMode} onScoreModeChange={handleScoreModeChange} />
+          <FileList projectId={id} scoreMode={scoreMode} onScoreModeChange={handleScoreModeChange} projectSections={project.sections} onFilesChanged={loadStats} />
         </div>
       </div>
     </div>

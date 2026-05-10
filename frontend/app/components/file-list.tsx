@@ -10,10 +10,14 @@ export default function FileList({
   projectId,
   scoreMode,
   onScoreModeChange,
+  projectSections,
+  onFilesChanged,
 }: {
   projectId?: string;
   scoreMode: 'total' | 'average';
   onScoreModeChange: (mode: 'total' | 'average') => void;
+  projectSections?: { name: string; maxScore: number }[];
+  onFilesChanged?: () => void;
 }) {
   const {
     files,
@@ -31,7 +35,7 @@ export default function FileList({
     handleDeleteFile,
     analyzeFile,
     fetchFiles,
-  } = useFileList(projectId);
+  } = useFileList(projectId, onFilesChanged);
 
   const [isDragActive, setIsDragActive] = useState(false);
 
@@ -153,6 +157,7 @@ export default function FileList({
               onAnalyze={projectId ? analyzeFile : undefined}
               isAnalyzing={analyzingFileId === file.id}
               scoreMode={scoreMode}
+              projectSections={projectSections}
             />
           ))
         )}

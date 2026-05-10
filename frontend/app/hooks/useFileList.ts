@@ -3,7 +3,7 @@ import { PDFFile } from '../types/file';
 
 const API_BASE = '/api/backend';
 
-export function useFileList(projectId?: string) {
+export function useFileList(projectId?: string, onFilesChanged?: () => void) {
   const [files, setFiles] = useState<PDFFile[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [fetchError, setFetchError] = useState(false);
@@ -68,6 +68,7 @@ export function useFileList(projectId?: string) {
 
       if (res.ok) {
         await fetchFiles();
+        onFilesChanged?.();
         setIsUploadModalOpen(false);
       } else {
         alert('File upload failed.');
@@ -94,6 +95,7 @@ export function useFileList(projectId?: string) {
 
       if (res.ok) {
         await fetchFiles();
+        onFilesChanged?.();
         setFileToDelete(null);
       } else {
         alert('Failed to delete file from server.');
@@ -120,6 +122,7 @@ export function useFileList(projectId?: string) {
         alert(`Analysis failed: ${err.message || res.status}`);
       }
       await fetchFiles();
+      onFilesChanged?.();
     } catch (err) {
       console.error('Analysis error:', err);
       alert('Error during analysis. Is the backend running?');
