@@ -47,7 +47,9 @@ export class FileService {
           score: s.score,
           maxScore: maxScoreByName[s.sectionName] ?? 4,
         }))
-        .sort((a, b) => (orderByName[a.name] ?? 0) - (orderByName[b.name] ?? 0));
+        .sort(
+          (a, b) => (orderByName[a.name] ?? 0) - (orderByName[b.name] ?? 0),
+        );
 
       return {
         id: file.id,
@@ -69,12 +71,12 @@ export class FileService {
     const file = await this.prisma.file.findUnique({
       where: { id },
     });
-    
+
     if (!file) {
       return { success: false, message: 'File not found' };
     }
 
-    // 2. Extract the actual storage filename from the URL 
+    // 2. Extract the actual storage filename from the URL
     const storageFileName = file.url.split('/').pop();
 
     if (storageFileName) {
@@ -122,9 +124,15 @@ export class FileService {
       }))
       .sort((a, b) => (orderByName[a.name] ?? 0) - (orderByName[b.name] ?? 0));
 
-    const humanSectionsByName: Record<string, { score: number; feedback: string }> = {};
+    const humanSectionsByName: Record<
+      string,
+      { score: number; feedback: string }
+    > = {};
     for (const s of file.humanReview?.sections ?? []) {
-      humanSectionsByName[s.sectionName] = { score: s.score, feedback: s.feedback };
+      humanSectionsByName[s.sectionName] = {
+        score: s.score,
+        feedback: s.feedback,
+      };
     }
 
     return {
@@ -157,14 +165,17 @@ export class FileService {
     const file = await this.prisma.file.findUnique({ where: { id: fileId } });
     if (!file) throw new NotFoundException(`File ${fileId} not found`);
 
-    const totalScore = Math.round(
-      dto.sections.reduce((sum, s) => sum + s.score, 0) * 100,
-    ) / 100;
+    const totalScore =
+      Math.round(dto.sections.reduce((sum, s) => sum + s.score, 0) * 100) / 100;
 
     await this.prisma.$transaction(async (tx) => {
       const review = await tx.humanReview.upsert({
         where: { fileId },
-        create: { fileId, totalScore, overallFeedback: dto.overallFeedback ?? '' },
+        create: {
+          fileId,
+          totalScore,
+          overallFeedback: dto.overallFeedback ?? '',
+        },
         update: { totalScore, overallFeedback: dto.overallFeedback ?? '' },
       });
 
@@ -182,7 +193,10 @@ export class FileService {
       }
 
       if (dto.confirm) {
-        await tx.file.update({ where: { id: fileId }, data: { status: 'REVIEWED' } });
+        await tx.file.update({
+          where: { id: fileId },
+          data: { status: 'REVIEWED' },
+        });
       }
     });
 
@@ -200,24 +214,41 @@ export class FileService {
 
     if (!file) throw new NotFoundException(`File ${fileId} not found`);
     if (!project) throw new NotFoundException(`Project ${projectId} not found`);
-    if (!project.sections.length) throw new Error('Project has no grading sections');
+    if (!project.sections.length)
+      throw new Error('Project has no grading sections');
 
-    await this.prisma.file.update({ where: { id: fileId }, data: { status: 'PROCESSING' } });
+    await this.prisma.file.update({
+      where: { id: fileId },
+      data: { status: 'PROCESSING' },
+    });
 
     try {
       const text = await this.grading.extractTextFromPdf(file.url);
-      if (text.trim().length < 50) throw new Error('PDF text too short or image-only — cannot grade');
+      if (text.trim().length < 50)
+        throw new Error('PDF text too short or image-only — cannot grade');
 
       const prompt = this.grading.buildPrompt(project, text);
       const { raw, provider, model } = await this.grading.callLlm(prompt);
-      const result = this.grading.normalizeResult(raw, project, provider, model);
+      const result = this.grading.normalizeResult(
+        raw,
+        project,
+        provider,
+        model,
+      );
 
       // Upsert each section score
       await Promise.all(
         result.sections.map((s) =>
           this.prisma.sectionScore.upsert({
-            where: { reportId_sectionName: { reportId: fileId, sectionName: s.name } },
-            create: { reportId: fileId, sectionName: s.name, score: s.score, comment: s.feedback },
+            where: {
+              reportId_sectionName: { reportId: fileId, sectionName: s.name },
+            },
+            create: {
+              reportId: fileId,
+              sectionName: s.name,
+              score: s.score,
+              comment: s.feedback,
+            },
             update: { score: s.score, comment: s.feedback },
           }),
         ),
@@ -225,12 +256,19 @@ export class FileService {
 
       await this.prisma.file.update({
         where: { id: fileId },
-        data: { status: 'COMPLETED', totalScore: result.totalScore, overallFeedback: result.overallFeedback },
+        data: {
+          status: 'COMPLETED',
+          totalScore: result.totalScore,
+          overallFeedback: result.overallFeedback,
+        },
       });
 
       return { success: true, fileId, ...result };
     } catch (err) {
-      await this.prisma.file.update({ where: { id: fileId }, data: { status: 'FAILED' } });
+      await this.prisma.file.update({
+        where: { id: fileId },
+        data: { status: 'FAILED' },
+      });
       throw err;
     }
   }

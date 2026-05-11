@@ -2,9 +2,9 @@ import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import pdfParse from 'pdf-parse';
 
-const GOOGLE_BASE      = 'https://generativelanguage.googleapis.com/v1beta/models';
-const OPENAI_BASE      = 'https://api.openai.com/v1/chat/completions';
-const OPENROUTER_BASE  = 'https://openrouter.ai/api/v1/chat/completions';
+const GOOGLE_BASE = 'https://generativelanguage.googleapis.com/v1beta/models';
+const OPENAI_BASE = 'https://api.openai.com/v1/chat/completions';
+const OPENROUTER_BASE = 'https://openrouter.ai/api/v1/chat/completions';
 const SYSTEM_PROMPT =
   'You are a strict teaching assistant. Score student work only against the provided rubric. Return valid JSON only — no markdown, no extra text.';
 
@@ -17,10 +17,15 @@ export class GradingService {
   private readonly explicitModel: string;
 
   constructor(config: ConfigService) {
-    this.googleKey =
-      (config.get<string>('GOOGLE_API_KEY') || config.get<string>('GEMINI_API_KEY') || '').trim();
+    this.googleKey = (
+      config.get<string>('GOOGLE_API_KEY') ||
+      config.get<string>('GEMINI_API_KEY') ||
+      ''
+    ).trim();
     this.openaiKey = (config.get<string>('OPENAI_API_KEY') || '').trim();
-    this.openrouterKey = (config.get<string>('OPENROUTER_API_KEY') || '').trim();
+    this.openrouterKey = (
+      config.get<string>('OPENROUTER_API_KEY') || ''
+    ).trim();
     this.explicitProvider = (config.get<string>('LLM_PROVIDER') || '').trim();
     this.explicitModel = (config.get<string>('LLM_MODEL') || '').trim();
   }
@@ -46,7 +51,8 @@ export class GradingService {
 
   async extractTextFromPdf(url: string): Promise<string> {
     const response = await fetch(url);
-    if (!response.ok) throw new Error(`Failed to download PDF (HTTP ${response.status})`);
+    if (!response.ok)
+      throw new Error(`Failed to download PDF (HTTP ${response.status})`);
     const buffer = Buffer.from(await response.arrayBuffer());
     const result = await pdfParse(buffer);
     return result.text || '';
@@ -61,10 +67,12 @@ export class GradingService {
     );
     const sectionLines: string[] = project.sections.map((s: any, i: number) => {
       const rubric =
-        s.rubric || 'No rubric provided — grade conservatively using the section name as a signal.';
+        s.rubric ||
+        'No rubric provided — grade conservatively using the section name as a signal.';
       return `${i + 1}. id=${s.id} | name=${s.name} | max_score=${s.maxScore}\n   rubric: ${rubric}`;
     });
-    const details = project.assignmentDetails || 'No assignment details provided.';
+    const details =
+      project.assignmentDetails || 'No assignment details provided.';
 
     return `You are a teaching assistant grading student work against a configurable rubric.
 Write concise but specific feedback.
@@ -112,7 +120,9 @@ JSON FORMAT:
 
   // ── LLM call ─────────────────────────────────────────────────────────────────
 
-  async callLlm(prompt: string): Promise<{ raw: any; provider: string; model: string }> {
+  async callLlm(
+    prompt: string,
+  ): Promise<{ raw: any; provider: string; model: string }> {
     const provider = this.resolveProvider();
     const model = this.resolveModel(provider);
 
@@ -120,10 +130,20 @@ JSON FORMAT:
     if (provider === 'google') {
       raw = await this.callGoogle(prompt, model);
     } else if (provider === 'openrouter') {
-      raw = await this.callOpenAiCompatible(prompt, model, this.openrouterKey, OPENROUTER_BASE);
+      raw = await this.callOpenAiCompatible(
+        prompt,
+        model,
+        this.openrouterKey,
+        OPENROUTER_BASE,
+      );
     } else {
       const apiUrl = process.env.OPENAI_API_URL || OPENAI_BASE;
-      raw = await this.callOpenAiCompatible(prompt, model, this.openaiKey, apiUrl);
+      raw = await this.callOpenAiCompatible(
+        prompt,
+        model,
+        this.openaiKey,
+        apiUrl,
+      );
     }
     return { raw, provider, model };
   }
@@ -136,15 +156,22 @@ JSON FORMAT:
       body: JSON.stringify({
         system_instruction: { parts: [{ text: SYSTEM_PROMPT }] },
         contents: [{ role: 'user', parts: [{ text: prompt }] }],
-        generationConfig: { temperature: 0.2, responseMimeType: 'application/json' },
+        generationConfig: {
+          temperature: 0.2,
+          responseMimeType: 'application/json',
+        },
       }),
     });
     if (!response.ok) {
       const err = await response.text();
-      throw new Error(`Google API error ${response.status}: ${err.slice(0, 300)}`);
+      throw new Error(
+        `Google API error ${response.status}: ${err.slice(0, 300)}`,
+      );
     }
     const data: any = await response.json();
-    return this.parseJsonFromText(data?.candidates?.[0]?.content?.parts?.[0]?.text ?? '');
+    return this.parseJsonFromText(
+      data?.candidates?.[0]?.content?.parts?.[0]?.text ?? '',
+    );
   }
 
   private async callOpenAiCompatible(
@@ -185,7 +212,8 @@ JSON FORMAT:
     } catch {
       const start = text.indexOf('{');
       const end = text.lastIndexOf('}');
-      if (start === -1 || end <= start) throw new Error('No JSON object found in LLM response.');
+      if (start === -1 || end <= start)
+        throw new Error('No JSON object found in LLM response.');
       return JSON.parse(text.slice(start, end + 1));
     }
   }
@@ -216,14 +244,16 @@ JSON FORMAT:
     const sections = (project.sections as any[]).map((s: any, i: number) => {
       const matched = byId[s.id] ?? byName[s.name] ?? {};
       const raw_score = parseFloat(matched.score) || 0;
-      const score = Math.round(Math.max(0, Math.min(raw_score, s.maxScore)) * 100) / 100;
+      const score =
+        Math.round(Math.max(0, Math.min(raw_score, s.maxScore)) * 100) / 100;
       return {
         id: s.id,
         name: s.name,
         maxScore: s.maxScore,
         score,
         feedback:
-          String(matched.feedback ?? '').trim() || `No feedback returned for "${s.name}".`,
+          String(matched.feedback ?? '').trim() ||
+          `No feedback returned for "${s.name}".`,
         order: i + 1,
       };
     });

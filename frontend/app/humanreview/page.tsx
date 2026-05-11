@@ -127,7 +127,7 @@ function EditModal({
             </div>
             <div className="text-xs text-slate-500 leading-relaxed">
               <p className="font-semibold text-slate-700 mb-1">AI scored: <span className="font-bold">{fmt(section.aiScore)} / {section.maxScore}</span></p>
-              <p className="italic">"{section.aiFeedback}"</p>
+              <p className="italic">&quot;{section.aiFeedback}&quot;</p>
             </div>
           </div>
         </div>
@@ -408,7 +408,7 @@ function HumanReviewContent() {
                 </div>
 
                 <p className="text-sm text-slate-600 leading-relaxed line-clamp-2 italic">
-                  "{section.feedback}"
+                  &quot;{section.feedback}&quot;
                 </p>
 
                 {/* Edit hint */}

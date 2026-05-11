@@ -25,7 +25,7 @@ export function DeleteModal({ file, isDeleting, onCancel, onConfirm }: DeleteMod
 
         <p className="text-slate-600 mb-6 text-sm leading-relaxed">
           Are you sure you want to delete{' '}
-          <span className="font-semibold text-slate-800">"{file.name}"</span>? This action cannot be
+          <span className="font-semibold text-slate-800">&quot;{file.name}&quot;</span>? This action cannot be
           undone and the record will be permanently removed.
         </p>
 

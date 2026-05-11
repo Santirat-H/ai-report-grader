@@ -56,22 +56,27 @@ export class StorageService {
     if (error) {
       throw error;
     }
-    
-    return data.map((file: any) => {
-      const { data: publicUrlData } = this.supabase.storage
-        .from(bucket)
-        .getPublicUrl(file.name);
-        
-      return {
-        id: file.id || file.name,
-        name: file.name,
-        size: file.size || 0,
-        createdAt: file.created_at,
-        url: publicUrlData.publicUrl,
-      };
-    })
-    .filter(file => file.name !== '.emptyFolderPlaceholder')
-    .sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime());
+
+    return data
+      .map((file: any) => {
+        const { data: publicUrlData } = this.supabase.storage
+          .from(bucket)
+          .getPublicUrl(file.name);
+
+        return {
+          id: file.id || file.name,
+          name: file.name,
+          size: file.size || 0,
+          createdAt: file.created_at,
+          url: publicUrlData.publicUrl,
+        };
+      })
+      .filter((file) => file.name !== '.emptyFolderPlaceholder')
+      .sort(
+        (a, b) =>
+          new Date(b.createdAt || 0).getTime() -
+          new Date(a.createdAt || 0).getTime(),
+      );
   }
 
   // Query the File metadata table via Supabase's PostgREST HTTP API.
@@ -81,7 +86,9 @@ export class StorageService {
   async getFilesFromDB(projectId?: string) {
     let query = this.supabase
       .from('File')
-      .select('id, name, size, url, createdAt, status, totalScore, projectId, SectionScore(sectionName, score)')
+      .select(
+        'id, name, size, url, createdAt, status, totalScore, projectId, SectionScore(sectionName, score)',
+      )
       .order('createdAt', { ascending: false });
 
     if (projectId) {
@@ -101,7 +108,7 @@ export class StorageService {
           }
         }
       }
-      const { SectionScore, ...rest } = file;
+      const { SectionScore: _SectionScore, ...rest } = file;
       return { ...rest, scores };
     });
   }
