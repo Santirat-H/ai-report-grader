@@ -28,13 +28,14 @@ const nextConfig: NextConfig = {
     serverExternalPackages: ["pdfjs-dist"],
 
     async rewrites() {
-        if (!process.env.NEXT_PUBLIC_BACKEND_URL) {
+        const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL;
+        if (!backendUrl || !backendUrl.startsWith('http')) {
             return [];
         }
         return [
             {
                 source: "/api/backend/:path*",
-                destination: `${process.env.NEXT_PUBLIC_BACKEND_URL}/:path*`,
+                destination: `${backendUrl}/:path*`,
             },
         ];
     },
