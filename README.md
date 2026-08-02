@@ -73,3 +73,12 @@ npm run dev
 -   [ ] Implement a robust cloud storage solution (e.g., AWS S3 or MinIO) replacing local upload folders.
 -   [ ] Establish a simple CI/CD pipeline for cloud deployment.
 -   [ ] Integrate full end-to-end AI processing workflows.
+
+### Deployment
+
+The Next.js frontend can be deployed to Vercel while the NestJS API, Supabase
+PostgreSQL database, and Supabase Storage remain external. See
+[VERCEL_DEPLOYMENT.md](./VERCEL_DEPLOYMENT.md) for the required settings,
+environment variables, known limitations, first-deployment checklist, and DNS
+cutover plan. The Docker and DigitalOcean configuration is intentionally retained
+as a fallback deployment path.
