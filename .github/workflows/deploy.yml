@@ -1,4 +1,4 @@
-name: CI/CD
+name: CI
 
 on:
   push:
@@ -20,7 +20,7 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: '22'
+          node-version: "22"
           cache: npm
           cache-dependency-path: backend/package-lock.json
 
@@ -35,6 +35,9 @@ jobs:
 
       - name: Lint
         run: npm run lint
+
+      - name: Test
+        run: npm test -- --runInBand
 
       - name: Build
         run: npm run build
@@ -53,7 +56,7 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: '22'
+          node-version: "22"
           cache: npm
           cache-dependency-path: frontend/package-lock.json
 
@@ -68,20 +71,3 @@ jobs:
 
       - name: Build
         run: npm run build
-
-  deploy:
-    name: Deploy to DigitalOcean
-    needs: [check-backend, check-frontend]
-    runs-on: ubuntu-latest
-    steps:
-      - name: Deploy backend
-        uses: digitalocean/app_action@v2
-        with:
-          token: ${{ secrets.DIGITALOCEAN_ACCESS_TOKEN }}
-          app_name: ${{ secrets.DO_BACKEND_APP_NAME }}
-
-      - name: Deploy frontend
-        uses: digitalocean/app_action@v2
-        with:
-          token: ${{ secrets.DIGITALOCEAN_ACCESS_TOKEN }}
-          app_name: ${{ secrets.DO_FRONTEND_APP_NAME }}
