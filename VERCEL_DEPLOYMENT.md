@@ -21,6 +21,100 @@ There are no WebSockets, scheduled jobs, continuously running frontend jobs, or
 application caches in the current codebase. AI grading runs synchronously in the
 external backend request and may need timeout/queue work as usage grows.
 
+## Render backend preview
+
+Create a **Web Service** in the Render dashboard with these settings:
+
+| Setting | Value |
+| --- | --- |
+| Repository branch | `vercel-migration` |
+| Root Directory | `backend` |
+| Runtime | `Node` |
+| Node.js version | `22.x` (declared in `backend/package.json`; leave `NODE_VERSION` unset) |
+| Region | The Render region closest to the Supabase project; use `Singapore` when Supabase is in Southeast Asia |
+| Instance Type | `Free` (preview only) |
+| Build Command | `npm ci && npx prisma generate && npm run build` |
+| Start Command | `npm run start:prod` |
+| Health Check Path | `/` |
+| Auto-Deploy | `No` while validating the preview |
+| Pre-Deploy Command | Leave blank |
+| Persistent Disk | None |
+
+Do not set `PORT`; Render supplies it. The backend listens on that port at
+`0.0.0.0`. `GET /` is the health check and returns only a static response. Free
+services spin down when idle and can have a cold-start delay, so this plan is
+appropriate for a preview rather than reliable production traffic.
+
+No `render.yaml` is included intentionally. The dashboard configuration is
+short, and the application needs a choice of LLM provider and manually supplied
+secrets. A Blueprint would not remove that manual work and could create
+infrastructure before those choices are reviewed.
+
+### Render environment variables
+
+Add these as secret environment variables in Render. Never commit their values.
+
+Required for every deployment:
+
+| Name | Purpose |
+| --- | --- |
+| `DATABASE_URL` | Supabase PostgreSQL runtime connection; prefer the Supabase pooler URL for server workloads |
+| `DIRECT_URL` | Direct/session database URL loaded by Prisma CLI during generation and used for controlled migrations |
+| `SUPABASE_URL` | Supabase project URL |
+| `SUPABASE_SECRET` | Server-only Supabase service key used for the `pdfs` storage bucket |
+
+At least one supported LLM key is also required:
+
+- `OPENROUTER_API_KEY`
+- `GOOGLE_API_KEY`
+- `GEMINI_API_KEY`
+- `OPENAI_API_KEY`
+
+Optional LLM selection and endpoint variables:
+
+- `LLM_PROVIDER` (`openrouter`, `google`, or `openai`; defaults to the first
+  configured provider)
+- `LLM_MODEL`
+- `OPENAI_API_URL`
+
+`POSTGRES_PASSWORD` belongs only to the retained Docker Compose fallback and is
+not needed on Render. Do not add any backend secret as a `NEXT_PUBLIC_*`
+variable: variables with that prefix are exposed to browser code.
+
+### Prisma migrations
+
+`npx prisma generate` is safe in the Render build command: it generates the
+client and does not alter the database. Do **not** put `prisma migrate deploy` in
+the build or start command. Builds can be retried, and the free Render plan does
+not provide a pre-deploy command.
+
+Before a schema-changing release, review and commit the generated migration,
+back up the Supabase database, and run the following once from a trusted
+workstation or a controlled CI job with the production `DIRECT_URL`:
+
+```bash
+cd backend
+npx prisma migrate deploy
+```
+
+Only run that command after confirming it targets the intended database. This
+repository preparation does not run a production migration.
+
+### Preview security warning
+
+The backend currently has **no authentication or authorization**. Its project,
+upload, delete, and grading endpoints become publicly callable as soon as the
+Render URL is public. CORS is also permissive; CORS is not an authentication
+control. Use the Render service only for a controlled preview, avoid sensitive
+data, monitor LLM and Supabase usage, and add authentication, authorization,
+rate limiting, and a restricted CORS origin before treating it as a public
+production service.
+
+The upload controller accepts PDF files in memory up to 10 MB and then writes
+them to Supabase Storage. The application does not depend on Render's ephemeral
+filesystem. The tracked `backend/uploads/` content and Docker/DigitalOcean files
+are legacy/fallback artifacts and are not used for new runtime uploads.
+
 ## Vercel environment variable
 
 Configure this in Production, Preview, and Development:
